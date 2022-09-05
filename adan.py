@@ -21,19 +21,18 @@ from torch.optim.optimizer import Optimizer
 class Adan(Optimizer):
     """
     Implements a pytorch variant of Adan
-
     Adan was proposed in
     Adan: Adaptive Nesterov Momentum Algorithm for Faster Optimizing Deep Models[J]. arXiv preprint arXiv:2208.06677, 2022.
     https://arxiv.org/abs/2208.06677
     Arguments:
         params (iterable): iterable of parameters to optimize or dicts defining parameter groups.
         lr (float, optional): learning rate. (default: 1e-3)
-        betas (Tuple[float, float, flot], optional): coefficients used for computing 
+        betas (Tuple[float, float, flot], optional): coefficients used for computing
             running averages of gradient and its norm. (default: (0.98, 0.92, 0.99))
-        eps (float, optional): term added to the denominator to improve 
+        eps (float, optional): term added to the denominator to improve
             numerical stability. (default: 1e-8)
         weight_decay (float, optional): decoupled weight decay (L2 penalty) (default: 0)
-        max_grad_norm (float, optional): value used to clip 
+        max_grad_norm (float, optional): value used to clip
             global grad norm (default: 0.0 no clip)
         no_prox (bool): how to perform the decoupled weight decay (default: False)
     """
@@ -79,10 +78,14 @@ class Adan(Optimizer):
                     state['exp_avg_diff'] = torch.zeros_like(p)
 
     @torch.no_grad()
-    def step(self):
+    def step(self, closure=None):
         """
             Performs a single optimization step.
         """
+        loss = None
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
         if self.defaults['max_grad_norm'] > 0:
             device = self.param_groups[0]['params'][0].device
             global_grad_norm = torch.zeros(1, device=device)
@@ -151,3 +154,4 @@ class Adan(Optimizer):
                     p.data.div_(1 + group['lr'] * group['weight_decay'])
 
                 state['pre_grad'] = copy_grad
+        return loss
